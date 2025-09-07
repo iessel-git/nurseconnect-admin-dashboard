@@ -5,12 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; margin: 0; }
     h1 { text-align: center; margin-bottom: 40px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; background: #fff; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background: #eee; }
-    h2 { margin-top: 40px; }
+    h2 { margin-top: 30px; }
+    .table-container { max-height: 300px; overflow-y: auto; margin-bottom: 20px; background: #fff; border: 1px solid #ccc; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { position: sticky; top: 0; background: #eee; z-index: 1; }
+    input[type="text"] { padding: 6px; margin-bottom: 10px; width: 100%; max-width: 400px; border-radius: 4px; border: 1px solid #ccc; }
+    button { padding: 6px 12px; margin-bottom: 10px; cursor: pointer; border-radius: 4px; border: none; background: #14b8a6; color: white; }
+    button:hover { background: #0f766e; }
+    @media(max-width: 600px) {
+      th, td { font-size: 12px; padding: 6px; }
+      input[type="text"] { max-width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -18,41 +26,46 @@
   <h1>Admin Dashboard</h1>
 
   <h2>Nurses</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Country</th>
-        <th>Shift</th>
-        <th>Locations</th>
-      </tr>
-    </thead>
-    <tbody id="nurse-table"></tbody>
-  </table>
+  <input type="text" id="nurse-search" placeholder="Search nurses...">
+  <button id="export-nurse">Export CSV</button>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Country</th>
+          <th>Shift</th>
+          <th>Locations</th>
+        </tr>
+      </thead>
+      <tbody id="nurse-table"></tbody>
+    </table>
+  </div>
 
   <h2>Employers</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Organization</th>
-        <th>Contact</th>
-        <th>Country</th>
-        <th>Roles</th>
-        <th>Shift</th>
-        <th>Locations</th>
-      </tr>
-    </thead>
-    <tbody id="employer-table"></tbody>
-  </table>
+  <input type="text" id="employer-search" placeholder="Search employers...">
+  <button id="export-employer">Export CSV</button>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Organization</th>
+          <th>Contact</th>
+          <th>Country</th>
+          <th>Roles</th>
+          <th>Shift</th>
+          <th>Locations</th>
+        </tr>
+      </thead>
+      <tbody id="employer-table"></tbody>
+    </table>
+  </div>
 
-  <!-- Firebase -->
   <script type="module">
-    // 1️⃣ Import Firebase functions
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // 2️⃣ Initialize Firebase (replace with your config)
     const firebaseConfig = {
       apiKey: "AIzaSyDAmEJootCl6dkOtDNe-ZR-twfDm480Dlc",
       authDomain: "nurse-connect-c4db9.firebaseapp.com",
@@ -65,40 +78,73 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 3️⃣ Grab table bodies
     const nurseTable = document.getElementById('nurse-table');
     const employerTable = document.getElementById('employer-table');
 
-    // 4️⃣ Real-time listener for Nurses
-    onSnapshot(collection(db, 'nurses'), snapshot => {
-      nurseTable.innerHTML = '';
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        nurseTable.innerHTML += `<tr>
-          <td>${data.fullName}</td>
-          <td>${data.email}</td>
-          <td>${data.country}</td>
-          <td>${data.shift}</td>
-          <td>${(data.locations || []).join(', ')}</td>
-        </tr>`;
+    let nursesData = [];
+    let employersData = [];
+
+    function renderTable(data, tableElement) {
+      tableElement.innerHTML = '';
+      data.forEach(d => {
+        const row = document.createElement('tr');
+        for (const key in d) {
+          const cell = document.createElement('td');
+          if (Array.isArray(d[key])) cell.textContent = d[key].join(', ');
+          else cell.textContent = d[key] || '';
+          row.appendChild(cell);
+        }
+        tableElement.appendChild(row);
       });
+    }
+
+    // Real-time Nurses
+    onSnapshot(collection(db, 'nurses'), snapshot => {
+      nursesData = snapshot.docs.map(doc => doc.data());
+      renderTable(nursesData, nurseTable);
     });
 
-    // 5️⃣ Real-time listener for Employers
+    // Real-time Employers
     onSnapshot(collection(db, 'employers'), snapshot => {
-      employerTable.innerHTML = '';
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        employerTable.innerHTML += `<tr>
-          <td>${data.org}</td>
-          <td>${data.contact}</td>
-          <td>${data.country}</td>
-          <td>${data.roles}</td>
-          <td>${data.shift}</td>
-          <td>${(data.locations || []).join(', ')}</td>
-        </tr>`;
-      });
+      employersData = snapshot.docs.map(doc => doc.data());
+      renderTable(employersData, employerTable);
     });
+
+    // Search Filter
+    document.getElementById('nurse-search').addEventListener('input', e => {
+      const term = e.target.value.toLowerCase();
+      renderTable(nursesData.filter(n => Object.values(n).some(v => v && v.toString().toLowerCase().includes(term))), nurseTable);
+    });
+
+    document.getElementById('employer-search').addEventListener('input', e => {
+      const term = e.target.value.toLowerCase();
+      renderTable(employersData.filter(n => Object.values(n).some(v => v && v.toString().toLowerCase().includes(term))), employerTable);
+    });
+
+    // CSV Export
+    function exportCSV(data, filename) {
+      if (!data.length) return alert("No data to export!");
+      const csv = [];
+      const headers = Object.keys(data[0]);
+      csv.push(headers.join(','));
+      data.forEach(row => {
+        csv.push(headers.map(h => {
+          const val = row[h];
+          return Array.isArray(val) ? `"${val.join(';')}"` : `"${val || ''}"`;
+        }).join(','));
+      });
+      const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('export-nurse').addEventListener('click', () => exportCSV(nursesData, 'nurses.csv'));
+    document.getElementById('export-employer').addEventListener('click', () => exportCSV(employersData, 'employers.csv'));
+
   </script>
 
 </body>
