@@ -32,6 +32,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="nurses">Nurses</div>
     <div class="tab" data-tab="employers">Employers</div>
+    <div class="tab" data-tab="match">Match</div>
   </div>
 
   <!-- Nurses Tab -->
@@ -45,6 +46,7 @@
             <th>Name</th>
             <th>Email</th>
             <th>Country</th>
+            <th>Roles</th> <!-- ✅ Added Roles column -->
             <th>Shift</th>
             <th>Locations</th>
           </tr>
@@ -75,6 +77,27 @@
     </div>
   </div>
 
+  <!-- Match Tab -->
+  <div id="match" class="tab-content">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nurse Name</th>
+            <th>Nurse Roles</th>
+            <th>Nurse Shift</th>
+            <th>Nurse Locations</th>
+            <th>Employer Org</th>
+            <th>Employer Roles</th>
+            <th>Employer Shift</th>
+            <th>Employer Locations</th>
+          </tr>
+        </thead>
+        <tbody id="match-table"></tbody>
+      </table>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -94,6 +117,7 @@
 
     const nurseTable = document.getElementById('nurse-table');
     const employerTable = document.getElementById('employer-table');
+    const matchTable = document.getElementById('match-table');
 
     let nursesData = [];
     let employersData = [];
@@ -105,6 +129,7 @@
           <td>${d.fullName || ''}</td>
           <td>${d.email || ''}</td>
           <td>${d.country || ''}</td>
+          <td>${d.roles || ''}</td>
           <td>${d.shift || ''}</td>
           <td>${(d.locations || []).join(', ')}</td>
         </tr>`;
@@ -125,15 +150,43 @@
       });
     }
 
+    function updateMatchTable() {
+      matchTable.innerHTML = '';
+      if (!nursesData.length || !employersData.length) return;
+
+      nursesData.forEach(nurse => {
+        employersData.forEach(emp => {
+          const roleMatch = emp.roles.toLowerCase().split(',').some(r => (nurse.roles || '').toLowerCase().includes(r.trim()));
+          const shiftMatch = emp.shift === 'Any' || emp.shift === nurse.shift || nurse.shift === 'Any';
+          const locationMatch = (emp.locations || []).some(loc => (nurse.locations || []).includes(loc));
+
+          if (roleMatch && shiftMatch && locationMatch) {
+            matchTable.innerHTML += `<tr>
+              <td>${nurse.fullName}</td>
+              <td>${nurse.roles}</td>
+              <td>${nurse.shift}</td>
+              <td>${(nurse.locations || []).join(', ')}</td>
+              <td>${emp.org}</td>
+              <td>${emp.roles}</td>
+              <td>${emp.shift}</td>
+              <td>${(emp.locations || []).join(', ')}</td>
+            </tr>`;
+          }
+        });
+      });
+    }
+
     // Real-time listeners
     onSnapshot(collection(db, 'nurses'), snapshot => {
       nursesData = snapshot.docs.map(doc => doc.data());
       renderNurseTable(nursesData);
+      updateMatchTable();
     });
 
     onSnapshot(collection(db, 'employers'), snapshot => {
       employersData = snapshot.docs.map(doc => doc.data());
       renderEmployerTable(employersData);
+      updateMatchTable();
     });
 
     // Search
@@ -143,6 +196,7 @@
         n.fullName?.toLowerCase().includes(term) ||
         n.email?.toLowerCase().includes(term) ||
         n.country?.toLowerCase().includes(term) ||
+        n.roles?.toLowerCase().includes(term) ||
         n.shift?.toLowerCase().includes(term) ||
         (n.locations || []).some(loc => loc.toLowerCase().includes(term))
       ));
