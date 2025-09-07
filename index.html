@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+
+  <h2>Nurses</h2>
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Name</th><th>Email</th><th>Country</th><th>Shift</th><th>Locations</th>
+      </tr>
+    </thead>
+    <tbody id="nurse-table"></tbody>
+  </table>
+
+  <h2>Employers</h2>
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Organization</th><th>Contact</th><th>Country</th><th>Roles</th><th>Shift</th><th>Locations</th>
+      </tr>
+    </thead>
+    <tbody id="employer-table"></tbody>
+  </table>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>
