@@ -6,8 +6,12 @@
   <title>Admin Dashboard</title>
   <style>
     body { font-family: sans-serif; padding: 20px; background: #f5f5f5; margin: 0; }
-    h1 { text-align: center; margin-bottom: 40px; }
-    h2 { margin-top: 30px; }
+    h1 { text-align: center; margin-bottom: 20px; }
+    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .tab { padding: 8px 16px; cursor: pointer; border-radius: 6px; background: #eee; }
+    .tab.active { background: #14b8a6; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
     .table-container { max-height: 300px; overflow-y: auto; margin-bottom: 20px; background: #fff; border: 1px solid #ccc; border-radius: 6px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
@@ -25,41 +29,50 @@
 
   <h1>Admin Dashboard</h1>
 
-  <h2>Nurses</h2>
-  <input type="text" id="nurse-search" placeholder="Search nurses...">
-  <button id="export-nurse">Export CSV</button>
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Country</th>
-          <th>Shift</th>
-          <th>Locations</th>
-        </tr>
-      </thead>
-      <tbody id="nurse-table"></tbody>
-    </table>
+  <div class="tabs">
+    <div class="tab active" data-tab="nurses">Nurses</div>
+    <div class="tab" data-tab="employers">Employers</div>
   </div>
 
-  <h2>Employers</h2>
-  <input type="text" id="employer-search" placeholder="Search employers...">
-  <button id="export-employer">Export CSV</button>
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Organization</th>
-          <th>Contact</th>
-          <th>Country</th>
-          <th>Roles</th>
-          <th>Shift</th>
-          <th>Locations</th>
-        </tr>
-      </thead>
-      <tbody id="employer-table"></tbody>
-    </table>
+  <!-- Nurses Tab -->
+  <div id="nurses" class="tab-content active">
+    <input type="text" id="nurse-search" placeholder="Search nurses...">
+    <button id="export-nurse">Export CSV</button>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Country</th>
+            <th>Shift</th>
+            <th>Locations</th>
+          </tr>
+        </thead>
+        <tbody id="nurse-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Employers Tab -->
+  <div id="employers" class="tab-content">
+    <input type="text" id="employer-search" placeholder="Search employers...">
+    <button id="export-employer">Export CSV</button>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Contact</th>
+            <th>Country</th>
+            <th>Roles</th>
+            <th>Shift</th>
+            <th>Locations</th>
+          </tr>
+        </thead>
+        <tbody id="employer-table"></tbody>
+      </table>
+    </div>
   </div>
 
   <script type="module">
@@ -170,6 +183,21 @@
 
     document.getElementById('export-nurse').addEventListener('click', () => exportCSV(nursesData, 'nurses.csv'));
     document.getElementById('export-employer').addEventListener('click', () => exportCSV(employersData, 'employers.csv'));
+
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        const target = tab.getAttribute('data-tab');
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        document.getElementById(target).classList.add('active');
+      });
+    });
   </script>
 </body>
 </html>
