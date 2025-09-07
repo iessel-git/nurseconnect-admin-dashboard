@@ -46,7 +46,7 @@
             <th>Name</th>
             <th>Email</th>
             <th>Country</th>
-            <th>Roles</th> <!-- ✅ Added Roles column -->
+            <th>Roles</th>
             <th>Shift</th>
             <th>Locations</th>
           </tr>
@@ -79,6 +79,7 @@
 
   <!-- Match Tab -->
   <div id="match" class="tab-content">
+    <button id="export-match">Export CSV</button>
     <div class="table-container">
       <table>
         <thead>
@@ -102,7 +103,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // Inline Firebase config
+    // Firebase inline config
     const firebaseConfig = {
       apiKey: "AIzaSyDAmEJootCl6dkOtDNe-ZR-twfDm480Dlc",
       authDomain: "nurse-connect-c4db9.firebaseapp.com",
@@ -121,6 +122,7 @@
 
     let nursesData = [];
     let employersData = [];
+    let matchData = [];
 
     function renderNurseTable(data) {
       nurseTable.innerHTML = '';
@@ -150,29 +152,19 @@
       });
     }
 
-    function updateMatchTable() {
+    function renderMatchTable(data) {
       matchTable.innerHTML = '';
-      if (!nursesData.length || !employersData.length) return;
-
-      nursesData.forEach(nurse => {
-        employersData.forEach(emp => {
-          const roleMatch = emp.roles.toLowerCase().split(',').some(r => (nurse.roles || '').toLowerCase().includes(r.trim()));
-          const shiftMatch = emp.shift === 'Any' || emp.shift === nurse.shift || nurse.shift === 'Any';
-          const locationMatch = (emp.locations || []).some(loc => (nurse.locations || []).includes(loc));
-
-          if (roleMatch && shiftMatch && locationMatch) {
-            matchTable.innerHTML += `<tr>
-              <td>${nurse.fullName}</td>
-              <td>${nurse.roles}</td>
-              <td>${nurse.shift}</td>
-              <td>${(nurse.locations || []).join(', ')}</td>
-              <td>${emp.org}</td>
-              <td>${emp.roles}</td>
-              <td>${emp.shift}</td>
-              <td>${(emp.locations || []).join(', ')}</td>
-            </tr>`;
-          }
-        });
+      data.forEach(m => {
+        matchTable.innerHTML += `<tr>
+          <td>${m.nurse.fullName || ''}</td>
+          <td>${m.nurse.roles || ''}</td>
+          <td>${m.nurse.shift || ''}</td>
+          <td>${(m.nurse.locations || []).join(', ')}</td>
+          <td>${m.employer.org || ''}</td>
+          <td>${m.employer.roles || ''}</td>
+          <td>${m.employer.shift || ''}</td>
+          <td>${(m.employer.locations || []).join(', ')}</td>
+        </tr>`;
       });
     }
 
@@ -180,14 +172,30 @@
     onSnapshot(collection(db, 'nurses'), snapshot => {
       nursesData = snapshot.docs.map(doc => doc.data());
       renderNurseTable(nursesData);
-      updateMatchTable();
+      computeMatches();
     });
 
     onSnapshot(collection(db, 'employers'), snapshot => {
       employersData = snapshot.docs.map(doc => doc.data());
       renderEmployerTable(employersData);
-      updateMatchTable();
+      computeMatches();
     });
+
+    // Compute matches
+    function computeMatches() {
+      matchData = [];
+      nursesData.forEach(n => {
+        employersData.forEach(e => {
+          const rolesMatch = e.roles.toLowerCase() === n.roles?.toLowerCase();
+          const shiftMatch = e.shift.toLowerCase() === n.shift.toLowerCase() || e.shift.toLowerCase() === 'any';
+          const locationMatch = n.locations.some(loc => e.locations.includes(loc));
+          if (rolesMatch && shiftMatch && locationMatch) {
+            matchData.push({ nurse: n, employer: e });
+          }
+        });
+      });
+      renderMatchTable(matchData);
+    }
 
     // Search
     document.getElementById('nurse-search').addEventListener('input', e => {
@@ -214,13 +222,12 @@
       ));
     });
 
-    // CSV export
-    function exportCSV(data, filename) {
-      if (!data.length) return alert("No data to export!");
-      const csv = [];
-      const headers = Object.keys(data[0]);
-      csv.push(headers.join(','));
-      data.forEach(row => {
+    // Export CSV
+    function exportCSVFromArray(dataArray, filename) {
+      if (!dataArray.length) return alert("No data to export!");
+      const headers = Object.keys(dataArray[0]);
+      const csv = [headers.join(',')];
+      dataArray.forEach(row => {
         csv.push(headers.map(h => {
           const val = row[h];
           return Array.isArray(val) ? `"${val.join(';')}"` : `"${val || ''}"`;
@@ -235,8 +242,22 @@
       URL.revokeObjectURL(url);
     }
 
-    document.getElementById('export-nurse').addEventListener('click', () => exportCSV(nursesData, 'nurses.csv'));
-    document.getElementById('export-employer').addEventListener('click', () => exportCSV(employersData, 'employers.csv'));
+    document.getElementById('export-nurse').addEventListener('click', () => exportCSVFromArray(nursesData, 'nurses.csv'));
+    document.getElementById('export-employer').addEventListener('click', () => exportCSVFromArray(employersData, 'employers.csv'));
+    document.getElementById('export-match').addEventListener('click', () => {
+      if (!matchData.length) return alert("No matches to export!");
+      const csvData = matchData.map(m => ({
+        "Nurse Name": m.nurse.fullName,
+        "Nurse Roles": m.nurse.roles,
+        "Nurse Shift": m.nurse.shift,
+        "Nurse Locations": (m.nurse.locations || []).join(';'),
+        "Employer Org": m.employer.org,
+        "Employer Roles": m.employer.roles,
+        "Employer Shift": m.employer.shift,
+        "Employer Locations": (m.employer.locations || []).join(';')
+      }));
+      exportCSVFromArray(csvData, 'matches.csv');
+    });
 
     // Tab switching
     const tabs = document.querySelectorAll('.tab');
