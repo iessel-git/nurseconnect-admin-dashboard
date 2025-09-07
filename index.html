@@ -66,6 +66,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+    // Inline Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyDAmEJootCl6dkOtDNe-ZR-twfDm480Dlc",
       authDomain: "nurse-connect-c4db9.firebaseapp.com",
@@ -84,44 +85,69 @@
     let nursesData = [];
     let employersData = [];
 
-    function renderTable(data, tableElement) {
-      tableElement.innerHTML = '';
+    function renderNurseTable(data) {
+      nurseTable.innerHTML = '';
       data.forEach(d => {
-        const row = document.createElement('tr');
-        for (const key in d) {
-          const cell = document.createElement('td');
-          if (Array.isArray(d[key])) cell.textContent = d[key].join(', ');
-          else cell.textContent = d[key] || '';
-          row.appendChild(cell);
-        }
-        tableElement.appendChild(row);
+        nurseTable.innerHTML += `<tr>
+          <td>${d.fullName || ''}</td>
+          <td>${d.email || ''}</td>
+          <td>${d.country || ''}</td>
+          <td>${d.shift || ''}</td>
+          <td>${(d.locations || []).join(', ')}</td>
+        </tr>`;
       });
     }
 
-    // Real-time Nurses
+    function renderEmployerTable(data) {
+      employerTable.innerHTML = '';
+      data.forEach(d => {
+        employerTable.innerHTML += `<tr>
+          <td>${d.org || ''}</td>
+          <td>${d.contact || ''}</td>
+          <td>${d.country || ''}</td>
+          <td>${d.roles || ''}</td>
+          <td>${d.shift || ''}</td>
+          <td>${(d.locations || []).join(', ')}</td>
+        </tr>`;
+      });
+    }
+
+    // Real-time listeners
     onSnapshot(collection(db, 'nurses'), snapshot => {
       nursesData = snapshot.docs.map(doc => doc.data());
-      renderTable(nursesData, nurseTable);
+      renderNurseTable(nursesData);
     });
 
-    // Real-time Employers
     onSnapshot(collection(db, 'employers'), snapshot => {
       employersData = snapshot.docs.map(doc => doc.data());
-      renderTable(employersData, employerTable);
+      renderEmployerTable(employersData);
     });
 
-    // Search Filter
+    // Search
     document.getElementById('nurse-search').addEventListener('input', e => {
       const term = e.target.value.toLowerCase();
-      renderTable(nursesData.filter(n => Object.values(n).some(v => v && v.toString().toLowerCase().includes(term))), nurseTable);
+      renderNurseTable(nursesData.filter(n => 
+        n.fullName?.toLowerCase().includes(term) ||
+        n.email?.toLowerCase().includes(term) ||
+        n.country?.toLowerCase().includes(term) ||
+        n.shift?.toLowerCase().includes(term) ||
+        (n.locations || []).some(loc => loc.toLowerCase().includes(term))
+      ));
     });
 
     document.getElementById('employer-search').addEventListener('input', e => {
       const term = e.target.value.toLowerCase();
-      renderTable(employersData.filter(n => Object.values(n).some(v => v && v.toString().toLowerCase().includes(term))), employerTable);
+      renderEmployerTable(employersData.filter(n => 
+        n.org?.toLowerCase().includes(term) ||
+        n.contact?.toLowerCase().includes(term) ||
+        n.country?.toLowerCase().includes(term) ||
+        n.roles?.toLowerCase().includes(term) ||
+        n.shift?.toLowerCase().includes(term) ||
+        (n.locations || []).some(loc => loc.toLowerCase().includes(term))
+      ));
     });
 
-    // CSV Export
+    // CSV export
     function exportCSV(data, filename) {
       if (!data.length) return alert("No data to export!");
       const csv = [];
@@ -144,8 +170,6 @@
 
     document.getElementById('export-nurse').addEventListener('click', () => exportCSV(nursesData, 'nurses.csv'));
     document.getElementById('export-employer').addEventListener('click', () => exportCSV(employersData, 'employers.csv'));
-
   </script>
-
 </body>
 </html>
