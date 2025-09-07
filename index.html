@@ -183,19 +183,29 @@
 
     // Compute matches
     function computeMatches() {
-      matchData = [];
-      nursesData.forEach(n => {
-        employersData.forEach(e => {
-          const rolesMatch = e.roles.toLowerCase() === n.roles?.toLowerCase();
-          const shiftMatch = e.shift.toLowerCase() === n.shift.toLowerCase() || e.shift.toLowerCase() === 'any';
-          const locationMatch = n.locations.some(loc => e.locations.includes(loc));
-          if (rolesMatch && shiftMatch && locationMatch) {
-            matchData.push({ nurse: n, employer: e });
-          }
-        });
-      });
-      renderMatchTable(matchData);
-    }
+  matchData = [];
+  nursesData.forEach(n => {
+    employersData.forEach(e => {
+      const nurseRole = (n.roles || '').toLowerCase();
+      const employerRoles = (e.roles || '').toLowerCase().split(',').map(r => r.trim());
+      const rolesMatch = employerRoles.includes(nurseRole);
+
+      const nurseShift = (n.shift || '').toLowerCase();
+      const employerShift = (e.shift || '').toLowerCase();
+      const shiftMatch = employerShift === 'any' || employerShift === nurseShift;
+
+      const nurseLocations = (n.locations || []).map(l => l.toLowerCase());
+      const employerLocations = (e.locations || []).map(l => l.toLowerCase());
+      const locationMatch = nurseLocations.some(loc => employerLocations.includes(loc));
+
+      if (rolesMatch && shiftMatch && locationMatch) {
+        matchData.push({ nurse: n, employer: e });
+      }
+    });
+  });
+  renderMatchTable(matchData);
+}
+
 
     // Search
     document.getElementById('nurse-search').addEventListener('input', e => {
