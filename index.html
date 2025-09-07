@@ -250,28 +250,29 @@
 
     // Match computation
     function computeMatches() {
-      matchData = [];
-      nursesData.forEach(n => {
-        employersData.forEach(e => {
-          const nurseRole = (n.roles || '').toLowerCase();
-          const employerRoles = (e.roles || '').toLowerCase().split(',').map(r => r.trim());
-          const rolesMatch = employerRoles.includes(nurseRole);
+  matchData = [];
+  nursesData.forEach(n => {
+    employersData.forEach(e => {
+      const nurseRole = (n.roles || '').toLowerCase();
+      const employerRoles = (e.roles || '').toLowerCase().split(',').map(r => r.trim());
+      const rolesMatch = employerRoles.includes(nurseRole);
 
-          const nurseShift = (n.shift || '').toLowerCase();
-          const employerShift = (e.shift || '').toLowerCase();
-          const shiftMatch = employerShift === 'any' || employerShift === nurseShift;
+      const nurseShift = (n.shift || '').toLowerCase();
+      const employerShift = (e.shift || '').toLowerCase();
+      const shiftMatch = nurseShift === 'any' || employerShift === 'any' || nurseShift === employerShift;
 
-          const nurseLocations = (n.locations || []).map(l => l.toLowerCase());
-          const employerLocations = (e.locations || []).map(l => l.toLowerCase());
-          const locationMatch = nurseLocations.some(loc => employerLocations.includes(loc));
+      const nurseLocations = (n.locations || []).map(l => l.toLowerCase());
+      const employerLocations = (e.locations || []).map(l => l.toLowerCase());
+      const locationMatch = nurseLocations.some(loc => employerLocations.includes(loc));
 
-          if (rolesMatch && shiftMatch && locationMatch) {
-            matchData.push({ nurse: n, employer: e });
-          }
-        });
-      });
-      renderMatchTable(matchData);
-    }
+      if (rolesMatch && shiftMatch && locationMatch) {
+        matchData.push({ nurse: n, employer: e });
+      }
+    });
+  });
+  renderMatchTable(matchData);
+}
+
   </script>
 </body>
 </html>
